@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Batch Queue Control Deck</title>
+    <meta
+      name="description"
+      content="A standalone web UI for configuring and monitoring ordered GitHub issue batch queues."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Azeret+Mono:wght@400;500;700&family=Instrument+Serif:ital@0;1&family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="grain"></div>
+    <main class="shell">
+      <section class="hero panel">
+        <div class="hero-copy">
+          <p class="eyebrow">GitHub Batch Queue</p>
+          <h1>Control an issue queue without touching the terminal first.</h1>
+          <p class="hero-text">
+            Build an ordered batch issue queue, inspect live public issue state, and generate the
+            exact local command that starts the queue watcher.
+          </p>
+        </div>
+        <div class="hero-stats">
+          <div class="stat-card">
+            <span class="stat-label">Mode</span>
+            <strong id="modeLabel">Public repo monitor</strong>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Detected dispatch</span>
+            <strong id="dispatchLabel">Not loaded</strong>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Active issue</span>
+            <strong id="activeIssueLabel">None</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="workspace-grid">
+        <section class="panel config-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Configuration</p>
+              <h2>Queue inputs</h2>
+            </div>
+            <button id="sampleButton" class="ghost-button">Load sample</button>
+          </div>
+
+          <form id="configForm" class="config-form">
+            <label>
+              <span>Repository</span>
+              <input id="repoInput" name="repo" placeholder="open-ace/open-ace" required />
+            </label>
+
+            <div class="dual-field">
+              <label>
+                <span>Batch issue number</span>
+                <input id="batchIssueInput" name="batchIssue" type="number" min="1" required />
+              </label>
+              <label>
+                <span>Interval seconds</span>
+                <input
+                  id="intervalInput"
+                  name="interval"
+                  type="number"
+                  min="60"
+                  step="60"
+                  required
+                />
+              </label>
+            </div>
+
+            <label>
+              <span>First check timestamp</span>
+              <input id="firstCheckInput" name="firstCheckAt" type="datetime-local" required />
+            </label>
+
+            <label>
+              <span>Ordered issue list</span>
+              <textarea
+                id="issuesInput"
+                name="issues"
+                rows="8"
+                placeholder="#718&#10;#723&#10;#724"
+                required
+              ></textarea>
+            </label>
+
+            <div class="toggle-row">
+              <label class="toggle-pill">
+                <input id="skipDispatchInput" name="skipDispatch" type="checkbox" />
+                <span>Skip initial dispatch</span>
+              </label>
+              <label class="token-field">
+                <span>GitHub token (optional)</span>
+                <input
+                  id="tokenInput"
+                  name="token"
+                  type="password"
+                  placeholder="ghp_... for higher API limits"
+                />
+              </label>
+            </div>
+          </form>
+
+          <div class="button-row">
+            <button id="refreshButton" class="primary-button">Refresh live status</button>
+            <button id="copyCommandButton" class="secondary-button">Copy start command</button>
+            <button id="copyJsonButton" class="secondary-button">Copy JSON</button>
+          </div>
+
+          <div class="button-row compact">
+            <button id="downloadButton" class="ghost-button">Download config</button>
+            <button id="shareButton" class="ghost-button">Copy share link</button>
+            <label class="ghost-button upload-button">
+              <input id="uploadInput" type="file" accept="application/json" hidden />
+              <span>Import config</span>
+            </label>
+          </div>
+        </section>
+
+        <section class="panel command-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Launch</p>
+              <h2>Generated command</h2>
+            </div>
+            <span id="commandHint" class="badge">Ready</span>
+          </div>
+          <pre id="commandPreview" class="command-block"></pre>
+          <div class="mini-grid">
+            <article class="mini-card">
+              <span class="mini-label">Config JSON</span>
+              <pre id="jsonPreview" class="json-block"></pre>
+            </article>
+            <article class="mini-card">
+              <span class="mini-label">Runbook</span>
+              <ol id="runbookList" class="runbook-list"></ol>
+            </article>
+          </div>
+        </section>
+      </section>
+
+      <section class="status-grid">
+        <section class="panel summary-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Batch issue</p>
+              <h2>Dispatch and completion signals</h2>
+            </div>
+            <span id="networkBadge" class="badge muted">Idle</span>
+          </div>
+          <div class="signal-grid">
+            <article class="signal-card">
+              <span class="signal-label">Batch issue body</span>
+              <p id="batchBodyPreview" class="signal-body">No data loaded.</p>
+            </article>
+            <article class="signal-card">
+              <span class="signal-label">Latest batch comment</span>
+              <p id="batchCommentPreview" class="signal-body">No data loaded.</p>
+            </article>
+            <article class="signal-card">
+              <span class="signal-label">Latest dispatch signal</span>
+              <p id="dispatchPreview" class="signal-body">No data loaded.</p>
+            </article>
+            <article class="signal-card">
+              <span class="signal-label">Current queue verdict</span>
+              <p id="verdictPreview" class="signal-body">Refresh to evaluate queue state.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="panel tracker-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Live tracker</p>
+              <h2>Ordered queue</h2>
+            </div>
+            <span id="refreshMeta" class="badge">No refresh yet</span>
+          </div>
+          <div id="issueBoard" class="issue-board"></div>
+        </section>
+      </section>
+
+      <section class="panel footer-panel">
+        <div>
+          <p class="eyebrow">Notes</p>
+          <h2>What this page can and cannot do</h2>
+        </div>
+        <div class="notes-grid">
+          <p>
+            This page can monitor public GitHub issue state directly from the browser, generate the
+            local queue startup command, and export a config file matching the watcher format.
+          </p>
+          <p>
+            It cannot launch local watcher processes by itself from the browser. Use the generated
+            command on the machine where your queue automation scripts live.
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <div id="toast" class="toast" aria-live="polite"></div>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
